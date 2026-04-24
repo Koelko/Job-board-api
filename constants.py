@@ -1,0 +1,7 @@
+ALLOWED_EMPLOYMENT_TYPES = ["Полная", "Частичная", "Удаленная", "Проектная"]
+ALLOWED_EXPERIENCE = ["Без опыта", "1-3 года", "3-5 лет", "5+ лет"]
+ALLOWED_STATUS = ["Рассмотрение","Отказ","Приглашение"]
+ALLOWED_EMPLOYER_SORT = ["rating", "created_at"]
+ALLOWED_RESUME_SORT = ["created_at", "city", "rating"]
+ALLOWED_APPLICATION_SORT = ["application_date", "status"]
+ALLOWED_VACANCY_SORT = ["publication_date", "salary", "rating", "city"]

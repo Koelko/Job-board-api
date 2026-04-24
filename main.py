@@ -2,11 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import engine, get_db
 from models import Vacancy, VacancyList, Employer, Seeker, Resume, Application
-from typing import List
+from sqlalchemy import or_, desc, asc
 import schemas
 from auth import router
 from dependencies import get_current_employer, get_current_seeker
 from math import ceil 
+from typing import List, Optional
+from constants import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_EXPERIENCE, ALLOWED_STATUS, ALLOWED_APPLICATION_SORT, ALLOWED_EMPLOYER_SORT, ALLOWED_RESUME_SORT, ALLOWED_VACANCY_SORT
 
 app = FastAPI(title="Биржа труда", description="Учебный проект биржа труда")
 app.include_router(router)
@@ -16,11 +18,40 @@ def read_root():
     return {"message":"Connection successful"}
 
 @app.get("/vacancies", response_model=schemas.PaginatedResponse[schemas.VacancyResponse])
-def show_vacancies(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы")):
-    total = db.query(Vacancy).count()
+def show_vacancies(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы"),
+                   city: Optional[str] = Query(None, description="Город"), salary_min: Optional[float] = Query(None, description="Минимальная зарплата"), 
+                   experience: Optional[str] = Query(None, description="Опыт работы"), employment_type: Optional[str] = Query(None, description="Тип занятости"), 
+                   skills: Optional[str] = Query(None, description="Навык"), sort: str = Query("publication_date", description="Поле для сортировки"),
+                    order: str = Query("desc", description="Направление (asc/desc)")):
+    query = db.query(Vacancy)
+    if sort not in ALLOWED_VACANCY_SORT:
+        raise HTTPException(status_code=400, detail=f"Недопустимое поле. Разрешено: {ALLOWED_VACANCY_SORT}")
+    if order not in ['desc', 'asc']:
+        raise HTTPException(status_code=400, detail="order должен быть 'asc' или 'desc'")
+    sort_column = getattr(Vacancy, sort)
+    if order == "desc":
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(asc(sort_column))
+    if city:
+        query = query.filter(Vacancy.city == city)
+    if salary_min:
+        query = query.filter(Vacancy.salary >= salary_min)
+    if experience:
+        if experience not in ALLOWED_EXPERIENCE:
+            raise HTTPException(status_code=400, detail=f"Недопустимый статус. Разрешено: {ALLOWED_EXPERIENCE}")
+        query = query.filter(Vacancy.experience == experience)
+    if employment_type:
+        if employment_type not in ALLOWED_EMPLOYMENT_TYPES:
+            raise HTTPException(status_code=400, detail=f"Недопустимое значениею Разрешено: {ALLOWED_EMPLOYMENT_TYPES}")
+        query = query.filter(Vacancy.employment_type == employment_type)
+    if skills:
+        conditions = [Vacancy.key_skills.ilike(f"%{skill}%") for skill in [s.strip() for s in skills.split(",")]]
+        query = query.filter(or_(*conditions))
+    total = query.count()
     pages = ceil(total / page_size)
     offset = (page - 1) * page_size
-    vacancies = db.query(Vacancy).offset(offset).limit(page_size).all()
+    vacancies = query.offset(offset).limit(page_size).all()
     return {'items': vacancies, 'total': total, 'page': page, 'pages': pages, 'page_size': page_size}
 
 @app.post("/vacancies", response_model=schemas.VacancyResponse)
@@ -75,11 +106,23 @@ def delete_vacancy(vacancy_id: int, db: Session = Depends(get_db), current_user:
     return {"message": "Вакансия удалена"}
 
 @app.get("/employers", response_model=schemas.PaginatedResponse[schemas.EmployerResponse])
-def show_employers(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=10, le=50, description="Размер страницы" )):
-    total = db.query(Employer).count()
+def show_employers(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы" ),
+                   search: Optional[str] = Query(None, description="Наименование компании"), sort: Optional[str] = Query(None, description="Поле для сортировки"),
+                   order: Optional[str] = Query(None, description="Направление")):
+    query = db.query(Employer)
+    if sort:
+        if sort not in ALLOWED_EMPLOYER_SORT:
+            raise HTTPException(status_code=400, detail=f"Недопустимое поле. Разрешено: {ALLOWED_EMPLOYER_SORT}")
+        if order not in ['asc', 'desc']:
+            raise HTTPException(400, "order должен быть 'asc' или 'desc'")
+        sort_column = getattr(Employer, sort)
+        query = query.order_by(desc(sort_column) if order == "desc" else asc(sort_column))
+    if search:
+        query = query.filter(Employer.name.ilike(f"%{search}%"))
+    total = query.count()
     offset = (page - 1)*page_size
     pages = ceil(total / page_size)
-    employers = db.query(Employer).offset(offset).limit(page_size).all()
+    employers = query.offset(offset).limit(page_size).all()
     result = []
     for employer in employers:
         vacancy_count = db.query(Vacancy).join(VacancyList).filter(VacancyList.company_id == employer.id).count()
@@ -93,6 +136,13 @@ def show_current_employer(employer_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Компания не найдена")
     vacancy_count = db.query(Vacancy).join(VacancyList).filter(VacancyList.company_id == employer_id).count()
     return {**employer.__dict__, "vacancy_count": vacancy_count}
+
+@app.get("/employer/my", response_model=schemas.EmployerResponse)
+def get_my_employer_profile(db: Session = Depends(get_db), current_user: dict = Depends(get_current_employer)):
+    employer = db.query(Employer).filter(Employer.id == current_user['user_id']).first()
+    if not employer:
+        raise HTTPException(status_code=404, detail="Профиль не найден")
+    return employer
 
 @app.put("/employers/{employer_id}", response_model=schemas.EmployerResponse)
 def update_employer(employer_id : int, employer: schemas.EmployerUpdate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_employer)):
@@ -120,11 +170,25 @@ def delete_employer(employer_id: int, db: Session = Depends(get_db), current_use
     return {"message": "Компания удалена"}
 
 @app.get("/resumes", response_model=schemas.PaginatedResponse[schemas.ResumeResponse])
-def show_resumes(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=10, le=50, description="Размер страницы")):
-    total = db.query(Resume).count()
+def show_resumes(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы"),
+                 city: Optional[str] = Query(None, description="Город"), speciality: Optional[str] = Query(None, description="Специальность"),
+                 sort: Optional[str] = Query(None, description="Поле для сортировки"), order: Optional[str] = Query(None, description="Направление")):
+    query = db.query(Resume)
+    if sort:
+        if sort not in ALLOWED_RESUME_SORT:
+            raise HTTPException(status_code=400, detail=f"Недопустимое поле. Разрешено: {ALLOWED_RESUME_SORT}")
+        if order not in ['desc', 'asc']:
+            raise HTTPException(status_code=400, detail="сортировка возможна только по возрастанию или убыванию")
+        sort_column = getattr(Resume, sort)
+        query = query.order_by(desc(sort_column) if order == 'desc' else asc(sort_column))
+    if city:
+        query = query.filter(Resume.city == city)
+    if speciality:
+        query = query.filter(Resume.specialty == speciality)
+    total = query.count()
     offset = (page - 1) * page_size
     pages = ceil(total / page_size)
-    resumes = db.query(Resume).offset(offset).limit(page_size).all()
+    resumes = query.offset(offset).limit(page_size).all()
     return {'items': resumes, 'total': total, 'page': page, 'pages': pages, 'page_size': page_size}
 
 @app.post("/resumes", response_model=schemas.ResumeResponse)
@@ -168,17 +232,9 @@ def delete_resume(resume_id: int, db: Session = Depends(get_db), current_user: d
     db.commit()
     return {"message":"Резюме удалено"}
 
-@app.get("/seekers", response_model=schemas.PaginatedResponse[schemas.SeekerResponse])
-def show_seekers(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=10, le=50, description="Размер страницы")):
-    total = db.query(Seeker).count()
-    pages = ceil(total / page_size)
-    offset = (page - 1) * page_size
-    seekers = db.query(Seeker).offset(offset).limit(page_size).all()
-    return {'items': seekers, 'total': total, 'page': page, 'pages': pages, 'page_size': page_size}
-
-@app.get("/seekers/{seeker_id}", response_model=schemas.SeekerResponse)
-def show_current_seeker(seeker_id : int, db: Session = Depends(get_db)):
-    seeker = db.query(Seeker).filter(Seeker.id == seeker_id).first()
+@app.get("/seekers/my", response_model=schemas.SeekerResponse)
+def show_my_seeker_profile(db: Session = Depends(get_db), current_user: dict = Depends(get_current_seeker)):
+    seeker = db.query(Seeker).filter(Seeker.id == current_user['user_id']).first()
     if not seeker:
         raise HTTPException(status_code=404, detail="Соискатель не найден")
     return seeker
@@ -209,7 +265,7 @@ def delete_seeker(seeker_id: int, db: Session = Depends(get_db), current_user: d
     return {"message":"Соискатель удален"}
 
 @app.get("/applications/my", response_model=schemas.PaginatedResponse[schemas.ApplicationResponse])
-def show_applications_seeker(db: Session = Depends(get_db), current_user: dict = Depends(get_current_seeker), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=10, le=50, description="Размер страницы")):
+def show_applications_seeker(db: Session = Depends(get_db), current_user: dict = Depends(get_current_seeker), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы")):
     total = db.query(Application).join(Resume).filter(Resume.seeker_id == current_user['user_id']).count()
     pages = ceil (total / page_size)
     offset = (page - 1) * page_size
@@ -217,7 +273,9 @@ def show_applications_seeker(db: Session = Depends(get_db), current_user: dict =
     return {'items':applications, 'total':total, 'page': page, 'pages': pages, 'page_size': page_size}
 
 @app.get("/vacancies/{vacancy_id}/applications", response_model=schemas.PaginatedResponse[schemas.ApplicationResponse])
-def show_applications_employer(vacancy_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_employer), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы")):
+def show_applications_employer(vacancy_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_employer), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы"),
+                               status: Optional[str] = Query(None, description="Статус отклика"), sort: Optional[str] = Query(None, description="Поле сортировки"),
+                               order: Optional[str] = Query(None, description="Направление")):
     db_vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
     if not db_vacancy:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
@@ -226,10 +284,22 @@ def show_applications_employer(vacancy_id: int, db: Session = Depends(get_db), c
         raise HTTPException(status_code=404, detail="Такого списка вакансий не существует")
     if current_user['user_id'] != db_vacancy_list.company_id:
         raise HTTPException(status_code=403, detail="Нет прав доступа")
-    total = db.query(Application).filter(Application.vacancy_id == db_vacancy.id).count()
+    query = db.query(Application).filter(Application.vacancy_id == db_vacancy.id)
+    if sort:
+        if sort not in ALLOWED_APPLICATION_SORT:
+            raise HTTPException(status_code=400, detail=f"Недопустимое значение. Разрешено: {ALLOWED_APPLICATION_SORT}")
+        if order not in ['desc', 'asc']:
+            raise HTTPException(status_code=400, detail="только desc или asc")
+        sort_column = getattr(Application, sort)
+        query = query.order_by(desc(sort_column) if order == 'desc' else asc(sort_column))
+    if status:
+        if status not in ALLOWED_STATUS:
+            raise HTTPException(status_code=400, detail=f"Недопустимое значение. Разрешено: {ALLOWED_STATUS}")
+        query = query.filter(Application.status == status)
+    total = query.count()
     pages = ceil(total / page_size)
     offset = (page - 1) * page_size
-    applications = db.query(Application).filter(Application.vacancy_id == db_vacancy.id).offset(offset).limit(page_size).all()
+    applications = query.offset(offset).limit(page_size).all()
     return {'items': applications, 'total': total, 'page':page, 'pages':pages, 'page_size': page_size}
 
 @app.post("/applications", response_model=schemas.ApplicationResponse)
@@ -276,7 +346,7 @@ def delete_application(application_id: int, db: Session = Depends(get_db), curre
     return {"message":"Отклик удален"}
 
 @app.get("/vacancy-lists", response_model=schemas.PaginatedResponse[schemas.VacancyListResponse])
-def show_vacancy_list(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=10, le=50, description="Размер страницы")):
+def show_vacancy_list(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы")):
     total = db.query(VacancyList).count()
     pages = ceil(total / page_size)
     offset = (page - 1) * page_size
