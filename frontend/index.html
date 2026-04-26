@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Биржа труда - Найди работу</title>
+    <link rel="stylesheet" href="../frontend/styles.css">
+    <script src="../frontend/scripts.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">JobBoard</div>
+                <div class="nav-links">
+                    <a href="vacancies.html">Вакансии</a>
+                    <a href="login.html" class="btn btn-secondary">Войти</a>
+                    <a href="login.html?register=1" class="btn btn-primary">Регистрация</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="hero">
+        <div class="container">
+            <h1>Найди работу</h1>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Должность, компания или ключевые слова">
+                <button class="btn btn-primary" onclick="searchVacancies()">Найти</button>
+            </div>
+        </div>
+    </section>
+    <section class="stats">
+        <div class="stats" id="page-home"></div>
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3 id="stat-vacancies">Загрузка...</h3>
+                    <p>Вакансий</p>
+                </div>
+                <div class="stat-item">
+                    <h3 id="stat-companies">Загрузка...</h3>
+                    <p>Компаний</p>
+                </div>                
+            </div>
+        </div>
+    </section>
+    <section class="vacancies-preview">
+        <div class="container">
+            <h2 class="section-title">Последние вакансии</h2>
+            <div id="vacancies-list">
+                Загрузка...
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="vacancies.html" class="btn btn-primary">Смотреть все вакансии</a>
+            </div>
+        </div>
+    </section>    
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 JobBoard. Учебный проект.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход / Регистрация - Биржа труда</title>
+    <link rel="stylesheet" href="../frontend/styles.css">    
+</head>
+<body>
+<header>
+        <div class="container">
+            <nav>
+                <div class="logo">JobBoard</div>
+                <div class="nav-links">
+                    <a href="index.html">Главная</a>
+                    <a href="vacancies.html">Вакансии</a>
+                </div>
+            </nav>
+        </div>
+    </header>    
+    <div class="container">
+        <div class="auth-container">
+            <h2 class="auth-title" id="form-title">Вход</h2>
+            <div class="error-message" id="error-msg"></div>
+            <div class="success-message" id="success-msg"></div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-role">Я:</label>
+                    <select id="login-role" required>
+                        <option value="seeker">Соискатель</option>
+                        <option value="employer">Работодатель</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-full">Войти</button>
+            </form>
+            <form id="register-form" class="hidden">
+                <div class="form-group">
+                    <label for="register-role">Я:</label>
+                    <select id="register-role" required onchange="toggleRegisterFields()">
+                        <option value="seeker">Соискатель</option>
+                        <option value="employer">Работодатель</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-name">Имя / Название компании</label>
+                    <input type="text" id="register-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password">Пароль</label>
+                    <input type="password" id="register-password" required minlength="6">
+                </div>                
+                <div id="seeker-fields">
+                    <div class="form-group">
+                        <label for="register-city">Город</label>
+                        <input type="text" id="register-city">
+                    </div>
+                </div>                
+                <div id="employer-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="register-company-name">Название компании</label>
+                        <input type="text" id="register-company-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-industry">Сфера деятельности</label>
+                        <input type="text" id="register-industry">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-full">Зарегистрироваться</button>
+            </form>
+            <div class="switch-form">
+                <span id="switch-text">Нет аккаунта? <a onclick="toggleForms()">Зарегистрироваться</a></span>
+            </div>
+        </div>
+    </div>    
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 JobBoard. Учебный проект.</p>
+        </div>
+    </footer>
+    <script src="../frontend/scripts.js"></script>
+</body>
+</html>

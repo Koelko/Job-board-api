@@ -23,7 +23,7 @@ def create_access_token(payload: dict) -> str:
 
 def verify_token(token: str) -> Optional[dict]:
     try:
-        payload = jwt.decode(token, secret_key, algorithms='HS256')
+        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
         return payload
     except jwt.ExpiredSignatureError as e:
         print (f"Token is bad: {e}")

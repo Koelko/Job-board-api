@@ -59,7 +59,7 @@ class EmployerUpdate(BaseModel):
 class EmployerResponse(EmployerBase, BaseResponse):
     id: int 
     vacancy_count: int 
-    rating: float
+    rating: Optional[float] = None
     
 class VacancyListBase(BaseModel):
     department: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -147,6 +147,7 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: str = Field(..., min_length=1, max_length=255)
     password: str = Field(..., min_length=5, max_length=255)
+    user_type: Literal["employer", "seeker"]
 
 class Token(BaseModel):
     access_token: str

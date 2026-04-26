@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет - Биржа труда</title>
+    <link rel="stylesheet" href="../frontend/styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">JobBoard</div>
+                <div class="nav-links">
+                    <a href="index.html">Главная</a>
+                    <a href="vacancies.html">Вакансии</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+    <div class="container">
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-info">
+                    <h2 id="profile-name">Загрузка...</h2>
+                    <p id="profile-email">...</p>
+                    <p id="profile-role" class="status-badge">...</p>
+                </div>
+                <button class="btn btn-logout" onclick="logout()">Выйти</button>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('main')">Профиль</button>
+                <button class="tab-btn" id="tab-applications" onclick="switchTab('applications')">Отклики</button>
+                <button class="tab-btn" id="tab-vacancies" onclick="switchTab('vacancies')">Вакансии</button>
+            </div>
+            <div id="tab-main" class="tab-content active">
+                <div class="item-card">
+                    <h3>Личные данные</h3>
+                    <div id="profile-details">Загрузка...</div>
+                </div>
+                <div id="create-action" style="margin-top: 20px;">
+                </div>
+            </div>
+            <div id="tab-applications" class="tab-content">
+                <div id="applications-list">Загрузка...</div>
+            </div>            
+            <div id="tab-vacancies" class="tab-content">
+                <div id="vacancies-list">Загрузка...</div>
+            </div>
+        </div>
+    </div>    
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 JobBoard. Учебный проект.</p>
+        </div>
+    </footer>    
+    <script src="../frontend/scripts.js"></script>
+</body>
+</html>

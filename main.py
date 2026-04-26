@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
 from database import engine, get_db
 from models import Vacancy, VacancyList, Employer, Seeker, Resume, Application
 from sqlalchemy import or_, desc, asc
@@ -11,6 +12,13 @@ from typing import List, Optional
 from constants import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_EXPERIENCE, ALLOWED_STATUS, ALLOWED_APPLICATION_SORT, ALLOWED_EMPLOYER_SORT, ALLOWED_RESUME_SORT, ALLOWED_VACANCY_SORT
 
 app = FastAPI(title="Биржа труда", description="Учебный проект биржа труда")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(router)
 
 @app.get("/")
