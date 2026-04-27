@@ -27,7 +27,7 @@ def read_root():
 
 @app.get("/vacancies", response_model=schemas.PaginatedResponse[schemas.VacancyResponse])
 def show_vacancies(db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Номер страницы"), page_size: int = Query(10, ge=1, le=50, description="Размер страницы"),
-                   city: Optional[str] = Query(None, description="Город"), salary_min: Optional[float] = Query(None, description="Минимальная зарплата"), 
+                   city: Optional[str] = Query(None, description="Город"), salary_min: Optional[float] = Query(None, ge=0, description="Минимальная зарплата"), 
                    experience: Optional[str] = Query(None, description="Опыт работы"), employment_type: Optional[str] = Query(None, description="Тип занятости"), 
                    skills: Optional[str] = Query(None, description="Навык"), sort: str = Query("publication_date", description="Поле для сортировки"),
                     order: str = Query("desc", description="Направление (asc/desc)")):
@@ -60,7 +60,21 @@ def show_vacancies(db: Session = Depends(get_db), page: int = Query(1, ge=1, des
     pages = ceil(total / page_size)
     offset = (page - 1) * page_size
     vacancies = query.offset(offset).limit(page_size).all()
-    return {'items': vacancies, 'total': total, 'page': page, 'pages': pages, 'page_size': page_size}
+    result = []
+    for vacancy in vacancies:
+        vacancy_list = db.query(VacancyList).filter(VacancyList.id == vacancy.list_id).first()
+        employer_name = None
+        if vacancy_list and vacancy_list.company_id:
+            employer = db.query(Employer).filter(Employer.id == vacancy_list.company_id).first()
+            if employer:
+                employer_name = employer.name
+        vacancy_d = {'id': vacancy.id, 'specialty': vacancy.specialty,'salary': vacancy.salary,'city': vacancy.city,
+            'experience': vacancy.experience,'employment_type': vacancy.employment_type,'key_skills': vacancy.key_skills,
+            'employer_name': employer_name, 'views_count': vacancy.views_count if hasattr(vacancy, 'views_count') else 0,
+            'applications_count': vacancy.applications_count if hasattr(vacancy, 'applications_count') else 0,
+            'is_visible': vacancy.is_visible if hasattr(vacancy, 'is_visible') else True}
+        result.append(vacancy_d)
+    return {'items': result, 'total': total, 'page': page, 'pages': pages, 'page_size': page_size}
 
 @app.post("/vacancies", response_model=schemas.VacancyResponse)
 def add_vacancy(vacancy: schemas.VacancyCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_employer)):
@@ -240,7 +254,7 @@ def delete_resume(resume_id: int, db: Session = Depends(get_db), current_user: d
     db.commit()
     return {"message":"Резюме удалено"}
 
-@app.get("/seekers/my", response_model=schemas.SeekerResponse)
+@app.get("/seeker/my", response_model=schemas.SeekerResponse)
 def show_my_seeker_profile(db: Session = Depends(get_db), current_user: dict = Depends(get_current_seeker)):
     seeker = db.query(Seeker).filter(Seeker.id == current_user['user_id']).first()
     if not seeker:

@@ -85,7 +85,7 @@
         }
         
         .stats {
-            padding: 60px 0;
+            padding: 20px 0;
             background: #f8f9fa;
         }
         
@@ -317,4 +317,159 @@
             text-align: center;
             padding: 40px;
             color: #666;
+        }
+.vacancies-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .filter-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .vacancy-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            transition: box-shadow 0.2s;
+        }
+        
+        .vacancy-card:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .vacancy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        
+        .vacancy-title {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .vacancy-company {
+            color: #666;
+            margin: 5px 0;
+        }
+        
+        .vacancy-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            color: #555;
+            font-size: 0.95rem;
+            margin: 10px 0;
+        }
+        
+        .vacancy-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .salary-badge {
+            background: #27ae60;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        
+        .skill-tag {
+            background: #ecf0f1;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        
+        .vacancy-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+        
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination span {
+            color: #666;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            .vacancy-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
         }

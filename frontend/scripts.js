@@ -1,3 +1,31 @@
+function updateAuthUI() {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('user_role');
+    const authLinks = document.getElementById('auth-links');    
+    if (!authLinks) return; 
+    
+    if (token && role) {
+        authLinks.innerHTML = `
+            <span style="color: white; margin-right: 15px;">
+                👋 ${role === 'seeker' ? 'Соискатель' : 'Работодатель'}
+            </span>
+            <a href="profile.html" class="btn btn-secondary" style="margin-right: 10px;">Профиль</a>
+            <a href="#" onclick="logout(); return false;" class="btn" style="background: #e74c3c; color: white;">Выйти</a>
+        `;
+    } else {
+        authLinks.innerHTML = `
+            <a href="login.html" class="btn btn-secondary" style="margin-right: 10px;">Войти</a>
+            <a href="login.html?register=1" class="btn btn-primary">Регистрация</a>
+        `;
+    }
+}
+window.logout = function() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_role');
+    updateAuthUI(); 
+    window.location.href = 'index.html';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('stat-vacancies')) {
         loadStats();
@@ -92,7 +120,7 @@ function displayVacanciesFull(data) {
     list.innerHTML = data.items.map(vacancy => `
         <div class="vacancy-card">
             <h3>${vacancy.specialty}</h3>
-            <p><strong>Компания:</strong> ${vacancy.company || 'Не указано'}</p>
+            <p><strong>Компания:</strong> ${vacancy.employer_name || 'Не указано'}</p>
             <p><strong>Город:</strong> ${vacancy.city || 'Не указано'}</p>
             <p><strong>Зарплата:</strong> ${vacancy.salary ? vacancy.salary + ' ₽' : 'Не указана'}</p>
             <p><strong>Опыт:</strong> ${vacancy.experience || 'Не указан'}</p>
@@ -116,7 +144,7 @@ async function loadVacancyDetail() {
         
         document.getElementById('vacancy-detail').innerHTML = `
             <h1>${vacancy.specialty}</h1>
-            <p><strong>Компания:</strong> ${vacancy.company || 'Не указано'}</p>
+            <p><strong>Компания:</strong> ${vacancy.employer_name || 'Не указано'}</p>
             <p><strong>Город:</strong> ${vacancy.city || 'Не указано'}</p>
             <p><strong>Зарплата:</strong> ${vacancy.salary ? vacancy.salary + ' ₽' : 'Не указана'}</p>
             <p><strong>Опыт:</strong> ${vacancy.experience || 'Не указан'}</p>
@@ -215,7 +243,7 @@ if (loginForm) {
                 
         showSuccess('Успешный вход! Перенаправление...');                
         setTimeout(() => {
-            window.location.href = role === 'employer' ? 'profile.html' : 'index.html';
+            window.location.href = 'profile.html';
         }, 1000);
                 
     } catch (error) {
@@ -235,7 +263,7 @@ if (registerForm) {
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const phone = document.getElementById('register-phone')?.value || null;
-                       
+                         
     const payload = {        
         email: email,
         password: password,
@@ -279,11 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('user_role');
-    
-    console.log('🔹 Проверка авторизации на profile.html');
-    console.log('  Token:', token ? 'есть' : 'нет');
-    console.log('  Role:', role);
-    
+        
     if (!token || !role) {
         console.log('Нет токена, редирект на login.html');
         window.location.href = 'login.html';
@@ -308,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 async function loadProfile(role, token) {
-    const endpoint = role === 'seeker' ? '/seekers/my' : '/employer/my';      
+    const endpoint = role === 'seeker' ? '/seeker/my' : '/employer/my';      
     try {
         const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -375,4 +399,135 @@ function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user_role');
     indow.location.href = 'index.html';
+}
+
+let currentPage = 1;
+    const pageSize = 10;
+    document.addEventListener('DOMContentLoaded', () => {
+    updateAuthUI();
+    loadVacancies();
+    const params = new URLSearchParams(window.location.search);
+    const searchQuery = params.get('search');
+    if (searchQuery) {
+        document.getElementById('filter-search').value = searchQuery;
+        applyFilters();
+    }
+});
+async function loadVacancies() {
+    const list = document.getElementById('vacancies-list');
+    list.innerHTML = '<p>Загрузка...</p>';    
+    const params = new URLSearchParams({
+        page: currentPage,
+        page_size: pageSize
+    });            
+    const search = document.getElementById('filter-search')?.value;
+    const city = document.getElementById('filter-city')?.value;
+    const salary = document.getElementById('filter-salary')?.value;
+    const experience = document.getElementById('filter-experience')?.value;
+    const employment = document.getElementById('filter-employment')?.value;            
+    if (search) params.append('skills', search);  
+    if (city) params.append('city', city);
+    if (salary) params.append('salary_min', salary);
+    if (experience) params.append('experience', experience);
+    if (employment) params.append('employment_type', employment);
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/vacancies?${params}`);
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        const data = await response.json();
+        displayVacancies(data);
+        updatePagination(data);
+        } catch (error) {
+            console.error('Ошибка:', error);
+            list.innerHTML = '<p class="empty-state"> Не удалось загрузить вакансии. Убедитесь, что сервер запущен.</p>';
+    }
+}
+function displayVacancies(data) {
+     console.log('🔹 Данные вакансий:', data);
+    console.log('🔹 Первая вакансия:', data.items?.[0]);
+    const list = document.getElementById('vacancies-list');
+    if (!data.items || data.items.length === 0) {
+        list.innerHTML = '<p class="empty-state">🔍 Вакансий не найдено. Попробуйте изменить фильтры.</p>';
+        return;
+    }
+    list.innerHTML = data.items.map(vacancy => `
+    <div class="vacancy-card">
+        <div class="vacancy-header">
+            <h3 class="vacancy-title">${vacancy.specialty || vacancy.title || 'Без названия'}</h3>
+            ${vacancy.salary ? `<span class="salary-badge">${vacancy.salary.toLocaleString('ru-RU')} ₽</span>` : ''}
+        </div>
+        <p class="vacancy-company">${vacancy.employer_name || 'Компания не указана'}</p>
+        <div class="vacancy-meta">
+            ${vacancy.city ? `<span>${vacancy.city}</span>` : ''}
+            ${vacancy.experience ? `<span>${vacancy.experience}</span>` : ''}
+            ${vacancy.employment_type ? `<span>${vacancy.employment_type}</span>` : ''}
+        </div>                    
+        ${vacancy.key_skills ? `
+        <div class="skills-list">
+            ${vacancy.key_skills.split(',').slice(0, 4).map(skill => 
+            `<span class="skill-tag">${skill.trim()}</span>`
+            ).join('')}
+        </div>` : ''}                    
+        <div class="vacancy-actions">
+            <a href="vacancy.html?id=${vacancy.id}" class="btn btn-primary">Подробнее</a>
+            ${localStorage.getItem('token') ? 
+            `<button class="btn btn-secondary" onclick="applyToVacancy(${vacancy.id})">Откликнуться</button>` 
+            : ''}
+        </div>
+    </div>
+    `).join('');
+}
+function updatePagination(data) {
+    const pageInfo = document.getElementById('page-info');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');            
+    pageInfo.textContent = `Страница ${data.page} из ${data.pages || 1}`;
+    prevBtn.disabled = data.page <= 1;
+    nextBtn.disabled = data.page >= (data.pages || 1);
+}
+function changePage(delta) {
+    currentPage += delta;
+    if (currentPage < 1) currentPage = 1;
+    loadVacancies();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function applyFilters() {
+    currentPage = 1;  
+    loadVacancies();
+}
+function resetFilters() {
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-city').value = '';
+    document.getElementById('filter-salary').value = '';
+    document.getElementById('filter-experience').value = '';
+    document.getElementById('filter-employment').value = '';
+    pplyFilters();
+}
+async function applyToVacancy(vacancyId) {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('user_role');
+    if (!token || role !== 'seeker') {
+        alert('Чтобы откликнуться, нужно войти как соискатель');
+        window.location.href = 'login.html';
+        return;
+    }
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/applications`, {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ vacancy_id: vacancyId })
+        });
+                
+        if (response.ok) {
+        alert('Отклик отправлен!');
+        } else {
+            const error = await response.json();
+            alert(`${error.detail || 'Ошибка отправки отклика'}`);
+        }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert(' Не удалось отправить отклик');
+    }
 }

@@ -37,6 +37,7 @@ class VacancyResponse(VacancyBase, BaseResponse):
     id: int
     views_count: int
     applications_count: int
+    employer_name: Optional[str] = None
     rating: Optional[float] = Field(None)
     publication_date: Optional[date] = Field(None)
     is_visible: bool
