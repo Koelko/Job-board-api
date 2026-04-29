@@ -54,7 +54,7 @@ def show_vacancies(db: Session = Depends(get_db), page: int = Query(1, ge=1, des
             vacancy_list_ids = [vl[0] for vl in db.query(VacancyList.id).filter(VacancyList.company_id.in_(employer_ids)).all()]
             if vacancy_list_ids:
                 conditions.append(Vacancy.list_id.in_(vacancy_list_ids))
-        query = [*conditions]
+        query = query.filter(or_*conditions)
     total = query.count()
     pages = ceil(total / page_size)
     offset = (page - 1) * page_size
