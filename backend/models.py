@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime, Boolean,Float, Text, Enum, func, DECIMAL
 from sqlalchemy.orm import relationship, declarative_base
-from datetime import datetime
+
 Base = declarative_base()
+
 class Employer(Base):
     __tablename__ = "companies"
     id = Column("ID", Integer, primary_key=True)
@@ -32,8 +33,6 @@ class Vacancy(Base):
     vacancy_list = relationship("VacancyList", back_populates="vacancy")
     application = relationship("Application", back_populates="vacancy")
 
-
-
 class VacancyList(Base):
     __tablename__ = "vacancy_lists"
     id = Column("ID", Integer, primary_key=True)
@@ -43,7 +42,6 @@ class VacancyList(Base):
     list_name = Column(String(255), nullable=True)
     employer = relationship("Employer", back_populates="vacancy_list")
     vacancy = relationship("Vacancy", back_populates="vacancy_list")
-
 
 class Application(Base):
     __tablename__ = "applications"
@@ -65,7 +63,6 @@ class Seeker(Base):
     password_hash = Column(String(255), nullable=False)
     resume = relationship("Resume", back_populates="seeker")
 
-
 class Resume(Base):
     __tablename__ = "resumes"
     id = Column("ID", Integer, primary_key=True)
@@ -84,4 +81,3 @@ class Resume(Base):
     created_at = Column(DateTime, nullable=True, server_default=func.curdate())
     seeker = relationship("Seeker", back_populates="resume")
     application = relationship("Application", back_populates="resume")
-

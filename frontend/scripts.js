@@ -7,10 +7,10 @@ function updateAuthUI() {
     if (token && role) {
         authLinks.innerHTML = `
             <span style="color: white; margin-right: 15px;">
-                👋 ${role === 'seeker' ? 'Соискатель' : 'Работодатель'}
+                ${role === 'seeker' ? 'Соискатель' : 'Работодатель'}
             </span>
             <a href="profile.html" class="btn btn-secondary" style="margin-right: 10px;">Профиль</a>
-            <a href="#" onclick="logout(); return false;" class="btn" style="background: #e74c3c; color: white;">Выйти</a>
+            <a href="#" onclick="logout(); return false;" class="btn" style="background: #aa8459; color: white;">Выйти</a>
         `;
     } else {
         authLinks.innerHTML = `

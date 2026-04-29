@@ -1,13 +1,13 @@
-import schemas
+from backend.schemas import Token, UserRegister,UserLogin
 from database import get_db
-from models import Employer, Seeker
+from backend.models import Employer, Seeker
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
 from security import check_password, create_access_token, hash_password
 
 router = APIRouter(prefix="/auth", tags=["Авторизация"])
-@router.post("/register", response_model=schemas.Token)
-def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
+@router.post("/register", response_model=Token)
+def register(user: UserRegister, db: Session = Depends(get_db)):
     if user.user_type == "employer":
         db_employer = db.query(Employer).filter(Employer.email == user.email).first()
         if db_employer:
@@ -32,8 +32,8 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
 
     return {"access_token": token, "token_type": "bearer"}
 
-@router.post("/login", response_model=schemas.Token)
-def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+@router.post("/login", response_model=Token)
+def login(user: UserLogin, db: Session = Depends(get_db)):
     if user.user_type == "employer":
         employer = db.query(Employer).filter(Employer.email == user.email).first()
         if not employer:
